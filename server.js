@@ -37,6 +37,12 @@ app.use((req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`MyFirst Fragrances backend listening on port ${PORT}`);
-});
+// Export app for Vercel
+module.exports = app;
+
+// Start server only if running directly
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`MyFirst Fragrances backend listening on port ${PORT}`);
+  });
+}
