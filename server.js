@@ -13,7 +13,11 @@ const { publicProductRouter, adminProductRouter } = require('./routes/productRou
 const app = express();
 
 // Connect to MongoDB
-connectDB();
+// Connect to MongoDB (Middleware to ensure connection)
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
 
 // Global middleware
 app.use(cors());
