@@ -1,17 +1,41 @@
 // config/db.js - Mongoose connection helper
 const mongoose = require('mongoose');
 
+// Use a global variable to cache the connection across hot reloads in development
+// and across serverless function invocations in production (if container stays warm).
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
 const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      // Mongoose 6+ ignores most options by default; kept for clarity
-      autoIndex: true,
-    });
-    console.log(`MongoDB connected: ${conn.connection.host}`);
-  } catch (err) {
-    console.error('MongoDB connection error:', err.message);
-    process.exit(1);
+  if (cached.conn) {
+    console.log('Using cached MongoDB connection');
+    return cached.conn;
   }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+    };
+
+    console.log('Creating new MongoDB connection...');
+    cached.promise = mongoose.connect(process.env.MONGODB_URI, opts).then((mongoose) => {
+      console.log(`MongoDB connected: ${mongoose.connection.host}`);
+      return mongoose;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    console.error('MongoDB connection error:', e.message);
+    throw e;
+  }
+
+  return cached.conn;
 };
 
 module.exports = connectDB;
